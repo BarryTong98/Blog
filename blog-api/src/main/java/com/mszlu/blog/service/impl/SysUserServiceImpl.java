@@ -5,6 +5,7 @@ import com.mszlu.blog.dao.mapper.SysUserMapper;
 import com.mszlu.blog.dao.pojo.SysUser;
 import com.mszlu.blog.service.LoginService;
 import com.mszlu.blog.service.SysUserService;
+import com.mszlu.blog.utils.JWTUtils;
 import com.mszlu.blog.vo.ErrorCode;
 import com.mszlu.blog.vo.LoginUserVo;
 import com.mszlu.blog.vo.Result;
@@ -13,6 +14,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+
+import java.lang.invoke.LambdaMetafactory;
+import java.util.Map;
 
 @Service
 public class SysUserServiceImpl implements SysUserService {
@@ -76,5 +80,29 @@ public class SysUserServiceImpl implements SysUserService {
         loginUserVo.setAccount(sysUser.getAccount());
 
         return Result.success(loginUserVo);
+    }
+
+    @Override
+    public SysUser findUseByAccount(String account) {
+        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysUser::getAccount, account);
+        queryWrapper.last("limit 1");
+        return this.sysUserMapper.selectOne(queryWrapper);
+    }
+
+    @Override
+    public void save(SysUser sysUser) {
+        //保存用户 id会自动生成
+        //这个地方 默认生成的id是分布式id 雪花算法
+        //因为mybatis-plus框架
+        this.sysUserMapper.insert(sysUser);
+    }
+
+    public static void main(String[] args) {
+        String token = JWTUtils.createToken(1L);
+        Map<String, Object> stringObjectMap = JWTUtils.checkToken(token);
+        for(String i : stringObjectMap.keySet()){
+            System.out.println(i+"    "+stringObjectMap.get(i));
+        }
     }
 }
