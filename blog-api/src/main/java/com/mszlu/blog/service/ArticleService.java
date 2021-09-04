@@ -2,6 +2,7 @@ package com.mszlu.blog.service;
 
 import com.mszlu.blog.vo.ArticleVo;
 import com.mszlu.blog.vo.Result;
+import com.mszlu.blog.vo.params.ArticleParam;
 import com.mszlu.blog.vo.params.PageParams;
 
 public interface ArticleService {
@@ -37,4 +38,11 @@ public interface ArticleService {
      * @return
      */
     Result findArticleById(Long articleId);
+
+    /**
+     * 文章发布图
+     * @param articleParam
+     * @return
+     */
+    Result publish(ArticleParam articleParam);
 }
