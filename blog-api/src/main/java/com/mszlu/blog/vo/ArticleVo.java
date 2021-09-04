@@ -17,11 +17,17 @@ public class ArticleVo {
 
     private String summary;
 
-    private int commentCounts;
+//    private int commentCounts;
+//
+//    private int viewCounts;
+//
+//    private int weight;
 
-    private int viewCounts;
+    private Integer commentCounts;
 
-    private int weight;
+    private Integer viewCounts;
+
+    private Integer weight;
     /**
      * 创建时间
      */

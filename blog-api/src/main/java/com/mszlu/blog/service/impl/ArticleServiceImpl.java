@@ -7,10 +7,7 @@ import com.mszlu.blog.dao.mapper.ArticleBodyMapper;
 import com.mszlu.blog.dao.mapper.ArticleMapper;
 import com.mszlu.blog.dao.pojo.Article;
 import com.mszlu.blog.dao.pojo.ArticleBody;
-import com.mszlu.blog.service.ArticleService;
-import com.mszlu.blog.service.CategoryService;
-import com.mszlu.blog.service.SysUserService;
-import com.mszlu.blog.service.TagsService;
+import com.mszlu.blog.service.*;
 import com.mszlu.blog.vo.ArticleBodyVo;
 import com.mszlu.blog.vo.ArticleVo;
 import com.mszlu.blog.vo.Result;
@@ -33,6 +30,12 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Autowired
     private SysUserService sysUserService;
+
+    @Autowired
+    private CategoryService categoryService;
+
+    @Autowired
+    private ArticleBodyMapper articleBodyMapper;
 
     @Override
     public Result listArticle(PageParams pageParams) {
@@ -85,6 +88,9 @@ public class ArticleServiceImpl implements ArticleService {
         return Result.success(archivesList);
     }
 
+    @Autowired
+    private ThreadService threadService;
+
     @Override
     public Result findArticleById(Long articleId) {
         /**
@@ -93,6 +99,12 @@ public class ArticleServiceImpl implements ArticleService {
          */
         Article article = this.articleMapper.selectById(articleId);
         ArticleVo articleVo = copy(article, true, true, true, true);
+        //查看完文章了，新增阅读数
+        //查看完文章之后，本应该直接返回数据了，这时候做了一个更新操作,更新时加写锁，阻塞其他的操作，性能比较低
+        //更新增加了此次接口的 耗时 -》在这里优化
+        //更新 一旦出现更新问题 不能影响 查看文章的操作
+        //线程池 可以把更新操作 扔到线程池中去执行， 和主线程就不相关了
+        threadService.updateArticleViewCount(articleMapper,article);
         return Result.success(articleVo);
     }
 
@@ -112,9 +124,6 @@ public class ArticleServiceImpl implements ArticleService {
         return articleVoList;
     }
 
-
-    @Autowired
-    private CategoryService categoryService;
 
     private ArticleVo copy(Article article, boolean isTag, boolean isAuthor, boolean isBody, boolean isCategory) {
         ArticleVo articleVo = new ArticleVo();
@@ -139,9 +148,6 @@ public class ArticleServiceImpl implements ArticleService {
         }
         return articleVo;
     }
-
-    @Autowired
-    private ArticleBodyMapper articleBodyMapper;
 
 
     private ArticleBodyVo findArticleBodyById(Long bodyId) {

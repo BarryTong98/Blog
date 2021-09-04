@@ -9,5 +9,11 @@ public interface TagsService {
     List<TagVo> findTagsByArticleId(Long articleId);
 
     Result hots(int limit);
+
+    /**
+     *  查询 所有的 文章标签
+     * @return
+     */
+    Result findAll();
 }
 
