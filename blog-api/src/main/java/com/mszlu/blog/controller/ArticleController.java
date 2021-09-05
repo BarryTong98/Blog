@@ -1,5 +1,6 @@
 package com.mszlu.blog.controller;
 
+import com.mszlu.blog.common.aop.LogAnnotation;
 import com.mszlu.blog.service.ArticleService;
 import com.mszlu.blog.vo.ArticleVo;
 import com.mszlu.blog.vo.Result;
@@ -15,14 +16,16 @@ public class ArticleController {
 
     @Autowired
     private ArticleService articleService;
-    //Result是统一结果返回
 
+    //Result是统一结果返回
     /**
      * 首页 文章 列表
      * @param pageParams
      * @return
      */
     @PostMapping
+    //加上此注解 代表要对此接口记录日志
+    @LogAnnotation(module="文章", operator = "获取文章列表")
     public Result listArticle(@RequestBody PageParams pageParams) {
         //ArticleVo 页面接收的数据
         return articleService.listArticle(pageParams);
@@ -62,7 +65,6 @@ public class ArticleController {
     @PostMapping("publish")
     public Result publish(@RequestBody ArticleParam articleParam){
         return  articleService.publish(articleParam);
-
     }
 }
 
