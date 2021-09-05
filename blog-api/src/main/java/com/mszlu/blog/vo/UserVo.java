@@ -9,6 +9,6 @@ public class UserVo {
 
     private String avatar;
 
-    private Long id;
+    private String id;
 }
 

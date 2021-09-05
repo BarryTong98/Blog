@@ -1,6 +1,7 @@
 package com.mszlu.blog.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mszlu.blog.dao.dos.Archives;
 import com.mszlu.blog.dao.mapper.ArticleBodyMapper;
@@ -48,22 +49,57 @@ public class ArticleServiceImpl implements ArticleService {
     @Autowired
     private ArticleTagMapper articleTagMapper;
 
+//    @Override
+//    public Result listArticle(PageParams pageParams) {
+//        /**
+//         * 1. 分页查询 article数据库表
+//         */
+//        Page<Article> page = new Page<>(pageParams.getPage(), pageParams.getPageSize());
+//        LambdaQueryWrapper<Article> queryWrapper = new LambdaQueryWrapper<>();
+//        if(pageParams.getCategoryId() != null){
+//            // and category_id = #{categoryId}
+//            queryWrapper.eq(Article::getCategoryId, pageParams.getCategoryId());
+//        }
+//        List<Long> articleIdList = new ArrayList<>();
+//        if(pageParams.getTagId() != null){
+//            //加入标签 条件查询
+//            //article表中 并没有tag字段 一篇文章 有多个标签
+//            //article_tag article_id 1:n tag_id
+//            LambdaQueryWrapper<ArticleTag> articleTagLambdaQueryWrapper = new LambdaQueryWrapper<>();
+//            articleTagLambdaQueryWrapper.eq(ArticleTag::getTagId,pageParams.getTagId());
+//            List<ArticleTag> articleTags  =  articleTagMapper.selectList(articleTagLambdaQueryWrapper);
+//            for (ArticleTag articleTag : articleTags) {
+//                 articleIdList.add(articleTag.getArticleId());
+//            }
+//            if(articleIdList.size() > 0){
+//                //add id in (1,2,3)
+//                queryWrapper.in(Article::getId, articleIdList);
+//            }
+//        }
+//
+//
+//        //是否置顶进行排序
+//        //order by create_date_desc
+//        queryWrapper.orderByDesc(Article::getWeight, Article::getCreateDate);
+//        Page<Article> articlePage = articleMapper.selectPage(page, queryWrapper);
+//        List<Article> records = articlePage.getRecords();
+//        //能直接返回嘛？很明显不能
+//        List<ArticleVo> articleVoList = copyList(records, true, true);
+//
+//        return Result.success(articleVoList);
+//    }
+
     @Override
     public Result listArticle(PageParams pageParams) {
-        /**
-         * 1. 分页查询 article数据库表
-         */
         Page<Article> page = new Page<>(pageParams.getPage(), pageParams.getPageSize());
-        LambdaQueryWrapper<Article> queryWrapper = new LambdaQueryWrapper<>();
-        //是否置顶进行排序
-        //order by create_date_desc
-        queryWrapper.orderByDesc(Article::getWeight, Article::getCreateDate);
-        Page<Article> articlePage = articleMapper.selectPage(page, queryWrapper);
-        List<Article> records = articlePage.getRecords();
-        //能直接返回嘛？很明显不能
-        List<ArticleVo> articleVoList = copyList(records, true, true);
-
-        return Result.success(articleVoList);
+        IPage<Article> articleIPage = articleMapper.listArticle(
+                page,
+                pageParams.getCategoryId(),
+                pageParams.getTagId(),
+                pageParams.getYear(),
+                pageParams.getMonth());
+        List<Article> records = articleIPage.getRecords();
+        return Result.success(copyList(records, true, true));
     }
 
     @Override
@@ -115,7 +151,7 @@ public class ArticleServiceImpl implements ArticleService {
         //更新增加了此次接口的 耗时 -》在这里优化
         //更新 一旦出现更新问题 不能影响 查看文章的操作
         //线程池 可以把更新操作 扔到线程池中去执行， 和主线程就不相关了
-        threadService.updateArticleViewCount(articleMapper,article);
+        threadService.updateArticleViewCount(articleMapper, article);
         return Result.success(articleVo);
     }
 
@@ -137,16 +173,16 @@ public class ArticleServiceImpl implements ArticleService {
         article.setSummary(articleParam.getSummary());
         article.setCommentCounts(0);
         article.setCreateDate(System.currentTimeMillis());
-        article.setCategoryId(articleParam.getCategory().getId());
+        article.setCategoryId(Long.parseLong(articleParam.getCategory().getId()));
         //插入之后会自动生成一个文章id
         this.articleMapper.insert(article);
         //tag
         List<TagVo> tags = articleParam.getTags();
-        if(tags != null){
+        if (tags != null) {
             for (TagVo tag : tags) {
                 Long articleId = article.getId();
                 ArticleTag articleTag = new ArticleTag();
-                articleTag.setTagId(tag.getId());
+                articleTag.setTagId(Long.parseLong(tag.getId()));
                 articleTag.setArticleId(articleId);
                 articleTagMapper.insert(articleTag);
             }
@@ -162,7 +198,7 @@ public class ArticleServiceImpl implements ArticleService {
         articleMapper.updateById(article);
         Map<String, String> map = new HashMap<>();
         // 放string是因为精度损失问题
-        map.put("id",article.getId().toString());
+        map.put("id", article.getId().toString());
         return Result.success(map);
     }
 
@@ -185,6 +221,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     private ArticleVo copy(Article article, boolean isTag, boolean isAuthor, boolean isBody, boolean isCategory) {
         ArticleVo articleVo = new ArticleVo();
+        articleVo.setId(String.valueOf(article.getId()));
         BeanUtils.copyProperties(article, articleVo);
         articleVo.setCreateDate(new DateTime(article.getCreateDate()).toString("yyyy-MM-dd HH:mm"));
         //并不是所有的接口，都需要标签和作者信息

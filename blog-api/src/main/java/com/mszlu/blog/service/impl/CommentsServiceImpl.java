@@ -80,6 +80,7 @@ public class CommentsServiceImpl implements CommentsService {
         //根据作者的id 查询作者的信息
         CommentVo commentVo = new CommentVo();
         BeanUtils.copyProperties(comment,commentVo);
+        commentVo.setId(String.valueOf(comment.getId()));
         //这里记得用String.valueOf()把long转换为String
         Long authorId = comment.getAuthorId();
         UserVo userVo = this.sysUserService.findUserVoById(authorId);
